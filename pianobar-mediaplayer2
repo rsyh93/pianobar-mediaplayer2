@@ -53,6 +53,8 @@ class pianoPlayer(mediaplayer.mediaPlayer):
 
         for dFrag in strCmd:
             key, *val = dFrag.split("=")
+            if key == "coverArt":
+                newMeta["mpris:artUrl"] = dbus.String(val[0], variant_level=1)
             if key == "artist":
                 newMeta["xesam:artist"] = dbus.Array(
                     [dbus.String(val[0])], variant_level=1
