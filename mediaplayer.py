@@ -97,7 +97,7 @@ class mediaPlayer(dbus.service.Object):
         else:
             raise dbus.exceptions.DBusException(
                 "org.mpris.MediaPlayer2.UnknownInterface",
-                "The Media player does not implement {0}".format(interaceName),
+                "The Media player does not implement {0}".format(interfaceName),
             )
 
     @dbus.service.method(propPath, in_signature="ssv")
