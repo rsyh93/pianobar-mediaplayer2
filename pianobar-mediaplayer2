@@ -95,7 +95,7 @@ class pianoPlayer(mediaplayer.mediaPlayer):
     def PlayPause(self):
         os.system("echo p > ~/.config/pianobar/ctl")
         currentStatus = self.properties["org.mpris.MediaPlayer2.Player"]["PlaybackStatus"]
-        if currentStatus == "Playing"
+        if currentStatus == "Playing":
             newStatus = "Paused"
             self.position = (self.position[0] + time.time() - self.position[1], time.time(), True)
         else:
