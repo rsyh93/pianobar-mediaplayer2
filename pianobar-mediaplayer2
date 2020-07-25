@@ -3,6 +3,7 @@
 import os
 import mediaplayer
 import dbus
+import time
 
 # the code has to respond to dbus methods and also to whenever the fifo is written to
 # how do i make respond to both in a pythonic way
@@ -20,6 +21,7 @@ class pianoPlayer(mediaplayer.mediaPlayer):
         self.properties["org.mpris.MediaPlayer2"]["Identity"] = "PianoBar"
 
         self.loop = loop
+        self.position = (0, time.time(), False) # position last paused, time of last play/pause, isPaused
 
     def setLast(self, cmd):
         print(cmd)
@@ -55,6 +57,12 @@ class pianoPlayer(mediaplayer.mediaPlayer):
             key, *val = dFrag.split("=")
             if key == "coverArt":
                 newMeta["mpris:artUrl"] = dbus.String(val[0], variant_level=1)
+            if key == "songDuration":
+                length = int(val[0]) * 1000000
+                newMeta["mpris:length"] = dbus.String(length, variant_level=1)
+            if key == "songPlayed":
+                self.position = (int(val[0]), time.time(), False)
+                self.updatePosition()
             if key == "artist":
                 newMeta["xesam:artist"] = dbus.Array(
                     [dbus.String(val[0])], variant_level=1
@@ -75,18 +83,25 @@ class pianoPlayer(mediaplayer.mediaPlayer):
     def Play(self):
         os.system("echo P > ~/.config/pianobar/ctl")
         self.__set("org.mpris.MediaPlayer2.Player", "PlaybackStatus", "Playing")
+        self.position = (self.position[0], time.time(), False)
 
     @dbus.service.method("org.mpris.MediaPlayer2.Player")
     def Pause(self):
         os.system("echo S > ~/.config/pianobar/ctl")
         self.__set("org.mpris.MediaPlayer2.Player", "PlaybackStatus", "Paused")
+        self.position = (self.position[0] + time.time() - self.position[1], time.time(), True)
 
     @dbus.service.method("org.mpris.MediaPlayer2.Player")
     def PlayPause(self):
         os.system("echo p > ~/.config/pianobar/ctl")
         currentStatus = self.properties["org.mpris.MediaPlayer2.Player"]["PlaybackStatus"]
-        self.__set("org.mpris.MediaPlayer2.Player", "PlaybackStatus",
-                "Paused" if currentStatus == "Playing" else "Playing")
+        if currentStatus == "Playing"
+            newStatus = "Paused"
+            self.position = (self.position[0] + time.time() - self.position[1], time.time(), True)
+        else:
+            newStatus = "Playing"
+            self.position = (self.position[0], time.time(), False)
+        self.__set("org.mpris.MediaPlayer2.Player", "PlaybackStatus", newStatus)
 
     @dbus.service.method("org.mpris.MediaPlayer2.Player")
     def Next(self):
@@ -96,6 +111,13 @@ class pianoPlayer(mediaplayer.mediaPlayer):
     def Quit(self):
         os.system("echo q > ~/.config/pianobar/ctl")
         self.loop.quit()
+
+    def updatePosition(self):
+        if self.position[2]: # Paused
+            position = self.position[0] // 1
+        else: # Playing
+            position = (self.position[0] + time.time() - self.position[1]) // 1
+        self.properties["org.mpris.MediaPlayer2.Player"]["Position"] = position * 1000000
 
 
 def readFifo(fifo, unsure, player):

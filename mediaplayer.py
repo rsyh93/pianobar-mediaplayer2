@@ -79,8 +79,15 @@ class mediaPlayer(dbus.service.Object):
             "org.mpris.MediaPlayer2.Playlists": {},
         }
 
+    def updatePosition(self):
+        '''overridden in child class to update position before fetching the property'''
+        pass
+
     @dbus.service.method(propPath, in_signature="ss", out_signature="v")
     def Get(self, interfaceName, propertyName):
+        if propertyName == "Position":
+            self.updatePosition()
+
         return self.GetAll(interfaceName)[propertyName]
 
     @dbus.service.method(propPath, in_signature="s", out_signature="a{sv}")
